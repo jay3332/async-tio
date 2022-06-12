@@ -49,10 +49,7 @@ class Tio:
     def __init__(self, *, session: Optional[ClientSession] = None) -> None:
         self._languages: list[Language] = []
 
-        if session is None:
-            self._http_session = ClientSession()
-        else:
-            self._http_session = session
+        self._http_session = ClientSession() if session is None else session
 
     async def __aenter__(self) -> Self:
         return self
@@ -94,7 +91,7 @@ class Tio:
 
         if inp_lang in languages:
             return inp_lang
-        
+
         try:
             return languages[lang_aliases.index(inp_lang)].tio_name
         except ValueError:
@@ -125,13 +122,12 @@ class Tio:
         """
         if not self._languages:
             async with self._http_session.get(self.LANGUAGES_URL) as response:
-                if response.ok:
-                    data: dict[str, Any] = await response.json()
-                    self._languages = [
-                        Language(name, data) for name, data in data.items()
-                    ]
-                else:
+                if not response.ok:
                     raise ApiError(response)
+                data: dict[str, Any] = await response.json()
+                self._languages = [
+                    Language(name, data) for name, data in data.items()
+                ]
         return self._languages
 
     def _format_payload(self, key: str, value: PayloadType) -> bytes:
@@ -210,13 +206,12 @@ class Tio:
         data = zlib.compress(byt, level=zlib.Z_BEST_COMPRESSION)
 
         async with self._http_session.post(self.API_URL, data=data[2:-4]) as response:
-            if response.ok:
-                resp_data = await response.read()
-                resp_data = resp_data.decode(errors='ignore')
-
-                if re.search(r"The language '.+' could not be found on the server", resp_data):
-                    raise LanguageNotFound(resp_data[16:])
-                else:
-                    return TioResponse(resp_data, language)
-            else:
+            if not response.ok:
                 raise ApiError(response)
+            resp_data = await response.read()
+            resp_data = resp_data.decode(errors='ignore')
+
+            if re.search(r"The language '.+' could not be found on the server", resp_data):
+                raise LanguageNotFound(resp_data[16:])
+            else:
+                return TioResponse(resp_data, language)

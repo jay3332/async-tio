@@ -13,7 +13,10 @@ with open('requirements.txt') as reqs:
     requirements = reqs.read().splitlines()
 
 with open('async_tio/__init__.py') as f:
-    version = re.search(r"^__version__\s*=\s*[\'']([^\'']*)[\'']", f.read(), re.MULTILINE).group(1)
+    version = re.search(
+        r"^__version__\s*=\s*[\'']([^\'']*)[\'']", f.read(), re.MULTILINE
+    )[1]
+
 
 setup(
     name='async_tio', 
